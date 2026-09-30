@@ -1,0 +1,378 @@
+﻿<div class="shell">
+  <header>
+    <a class="brand" (click)="section.set('shop')">
+      <b>S</b><span>STUDIO<br><i>SUPPLY</i></span>
+    </a>
+    <nav>
+      @if (authenticated() && role()==='admin') {
+        <button (click)="section.set('admin')" [class.on]="section()==='admin'">Admin workspace</button>
+      }
+    </nav>
+    <div class="tools">
+      @if (authenticated()) {
+        <button class="account" (click)="logout()">Sign out</button>
+        @if (role()==='customer') {
+          <button class="orders-trigger" (click)="toggleOrders()" [attr.aria-label]="'View ' + customerOrders().length + ' orders'" [attr.aria-expanded]="ordersOpen()" title="Your orders">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M6 3h12v18l-2-1.5L14 21l-2-1.5L10 21l-2-1.5L6 21V3Z" />
+              <path d="M9 8h6M9 12h6M9 16h4" />
+            </svg>
+            <span class="orders-count">{{customerOrders().length}}</span>
+          </button>
+          <button class="bag-trigger" (click)="toggleBag()" [attr.aria-label]="'Open bag with ' + count() + ' items'" [attr.aria-expanded]="bagOpen()" title="Open bag">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M5 8h14l1 13H4L5 8Z" />
+              <path d="M9 9V6a3 3 0 0 1 6 0v3" />
+            </svg>
+            <span class="bag-count">{{count()}}</span>
+          </button>
+        }
+      }
+    </div>
+  </header>
+
+  @if (!authenticated() && section() !== 'journal') {
+    <main class="auth-page">
+      <section class="auth-art">
+        <p class="eyebrow">STUDIO SUPPLY / MEMBERS</p>
+        <h1>Life, <em>considered.</em></h1>
+        <p>Sign in to save favourites, manage orders and make checkout easier.</p>
+        <div class="auth-quote">The little things make the everyday.<br><small>STUDIO SUPPLY</small></div>
+      </section>
+      <section class="auth-card">
+        <div class="mode-tabs">
+          <button [class.on]="loginMode()==='login'" (click)="loginMode.set('login')">Sign in</button>
+          <button [class.on]="loginMode()==='signup'" (click)="loginMode.set('signup')">Create account</button>
+        </div>
+        <h2>{{loginMode()==='login' ? 'Welcome back.' : 'Join the studio.'}}</h2>
+        <p>{{loginMode()==='login' ? 'Sign in to access your account.' : 'Create an account for a personal experience.'}}</p>
+        <label>Email address<input type="email" [(ngModel)]="email" placeholder="you@example.com"></label>
+        @if (loginMode()==='signup') {
+          <label>Full name<input [(ngModel)]="fullName" placeholder="Your full name"></label>
+        }
+        <button class="auth-submit" (click)="login('customer')">{{loginMode()==='login' ? 'Sign in' : 'Create account'}} →</button>
+        <button class="admin-entry" (click)="login('admin')">Administrator? Sign in to workspace →</button>
+      </section>
+    </main>
+  } @else if (section()==='shop') {
+    <main>
+      <section class="hero">
+        <div>
+          <p class="eyebrow">THE EVERYDAY EDIT</p>
+          <h1>Good things,<br><em>well made.</em></h1>
+          <p>Considered essentials for the rhythm of your every day.</p>
+          <button class="cta" (click)="notice('Showing new arrivals')">Shop new arrivals　→</button>
+        </div>
+        <figure>
+          <img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1400&q=85" alt="Clothes on a rail">
+          <figcaption>01 — AUTUMN / WINTER<br><small>Made for the moments in between.</small></figcaption>
+        </figure>
+      </section>
+      <section class="catalog">
+        <div class="title">
+          <div>
+            <p class="eyebrow">CURATED FOR YOU</p>
+            <h2>Explore the collection</h2>
+          </div>
+        </div>
+        <div class="filters">
+          <div>
+            @for (c of categoryNames(); track c) {
+              <button [class.pick]="category()===c" (click)="category.set(c)">{{c==='All' ? 'All products' : c}}</button>
+            }
+          </div>
+          <label>⌕ <input [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Search products"></label>
+        </div>
+        <div class="grid">
+          @for (p of filtered(); track p.id) {
+            <article>
+              <div class="photo">
+                <img [src]="p.imageUrl" [alt]="p.name">
+                @if (p.brand) { <small>{{p.brand}}</small> }
+                <button (click)="add(p)">Add to cart　+</button>
+              </div>
+              <div class="info">
+                <div>
+                  <b>{{p.name}}</b>
+                  <span>{{categoryNameFor(p.categoryId)}}</span>
+                </div>
+                <b>{{p.price | currency:'GHS':'GH₵':'1.0-0'}}</b>
+              </div>
+              <p class="stars">★ {{p.stockQuantity}} in stock</p>
+            </article>
+          } @empty {
+            <p>No products match your search.</p>
+          }
+        </div>
+      </section>
+      <section class="benefits">
+        <div>✦<b>Made to last</b><p>Thoughtful materials, tested for your every day.</p></div>
+        <div>◌<b>Small batch</b><p>Less waste, more intention in every piece.</p></div>
+        <div>↗<b>Easy returns</b><p>30 days to make sure it feels just right.</p></div>
+      </section>
+    </main>
+    @if (bagOpen()) {
+      <button class="bag-backdrop" aria-label="Close bag" (click)="closeBag()"></button>
+      <aside class="bag" role="dialog" aria-modal="true" aria-labelledby="bag-title">
+        <div class="baghead">
+          <b id="bag-title">{{checkoutOpen() ? 'Delivery details' : 'Your bag'}} <i>({{count()}})</i></b>
+          <button class="bag-close" aria-label="Close bag" (click)="closeBag()">×</button>
+        </div>
+        @if (checkoutOpen()) {
+          <div class="checkout-content">
+            <button class="back-to-bag" type="button" (click)="checkoutOpen.set(false)">← Back to bag</button>
+            <h2>Shipping address</h2>
+            <p>Enter the address for this delivery.</p>
+            <form class="checkout-form" (ngSubmit)="checkout()" #addressForm="ngForm">
+              <label>Street address
+                <input name="addressLine" [(ngModel)]="checkoutAddress.addressLine" autocomplete="street-address" required>
+              </label>
+              <label>City
+                <input name="city" [(ngModel)]="checkoutAddress.city" autocomplete="address-level2" required>
+              </label>
+              <label>State or region
+                <input name="region" [(ngModel)]="checkoutAddress.region" autocomplete="address-level1" required>
+              </label>
+              <div class="checkout-fields">
+                <label>Postal code
+                  <input name="postalCode" [(ngModel)]="checkoutAddress.postalCode" autocomplete="postal-code">
+                </label>
+                <label>Country
+                  <input name="country" [(ngModel)]="checkoutAddress.country" autocomplete="country-name" required>
+                </label>
+              </div>
+              <label>Phone (optional)
+                <input name="phoneNumber" type="tel" [(ngModel)]="checkoutAddress.phoneNumber" autocomplete="tel">
+              </label>
+              <button class="checkout" type="submit" [disabled]="addressForm.invalid || checkoutSubmitting()">
+                {{checkoutSubmitting() ? 'Submitting…' : 'Place order'}}
+                <span>{{total() | currency:'GHS':'GH₵':'1.0-0'}}　→</span>
+              </button>
+            </form>
+          </div>
+        } @else {
+          <div class="bag-items">
+            @for (p of items(); track p.cartItemId) {
+              <div class="line">
+                <img [src]="p.image" [alt]="p.name">
+                <div class="bag-item-details">
+                  <div class="bag-item-title">
+                    <b>{{p.name}}</b>
+                    <button class="remove-item" [attr.aria-label]="'Remove ' + p.name + ' from cart'" title="Remove item" (click)="removeItem(p.cartItemId, p.name)">
+                      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M4 7h16M10 11v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3" />
+                      </svg>
+                    </button>
+                  </div>
+                  <small>{{p.category}}</small>
+                  <span>
+                    <button aria-label="Decrease quantity" (click)="qty(p.cartItemId, p.productId, -1)">−</button>
+                    {{p.qty}}
+                    <button aria-label="Increase quantity" (click)="qty(p.cartItemId, p.productId, 1)">+</button>
+                  </span>
+                </div>
+                <b>{{p.price * p.qty | currency:'GHS':'GH₵':'1.0-0'}}</b>
+              </div>
+            } @empty {
+              <p class="empty-bag">Your bag is empty.</p>
+            }
+          </div>
+          <div class="bag-footer">
+            <div class="sum">Subtotal <b>{{total() | currency:'GHS':'GH₵':'1.0-0'}}</b></div>
+            <button class="checkout" [disabled]="!count()" (click)="beginCheckout()">Checkout <span>→</span></button>
+            <p>Taxes and shipping calculated at checkout.</p>
+          </div>
+        }
+      </aside>
+    }
+    @if (ordersOpen()) {
+      <button class="bag-backdrop" aria-label="Close orders" (click)="closeBag()"></button>
+      <aside class="bag orders-drawer" role="dialog" aria-modal="true" aria-labelledby="orders-title">
+        <div class="baghead">
+          <b id="orders-title">Your orders <i>({{customerOrders().length}})</i></b>
+          <button class="bag-close" aria-label="Close orders" (click)="closeBag()">×</button>
+        </div>
+        <div class="orders-list">
+          @if (ordersLoading()) {
+            <p class="orders-message">Loading your orders…</p>
+          } @else if (ordersError()) {
+            <div class="orders-message orders-error">
+              <p>{{ordersError()}}</p>
+              <button (click)="toggleOrders()">Try again</button>
+            </div>
+          } @else {
+            @for (order of customerOrders(); track order.id) {
+              <article class="customer-order">
+                <div class="customer-order-head">
+                  <div>
+                    <b>Order #{{order.id.slice(0, 8)}}</b>
+                    <small>{{order.createdAt | date:'d MMM y'}}</small>
+                  </div>
+                  <span class="order-status" [class]="statusClass(order.status)">{{order.status}}</span>
+                </div>
+                <div class="customer-order-items">
+                  @for (item of order.items; track item.id) {
+                    <div>
+                      <span>{{productNameFor(item.productId)}} × {{item.quantity}}</span>
+                      <b>{{item.subtotal | currency:'GHS':'GH₵':'1.0-0'}}</b>
+                    </div>
+                  }
+                </div>
+                <div class="customer-order-total">
+                  <span>Total</span>
+                  <b>{{order.totalAmount | currency:'GHS':'GH₵':'1.0-0'}}</b>
+                </div>
+              </article>
+            } @empty {
+              <p class="orders-message">Your completed orders will appear here.</p>
+            }
+          }
+        </div>
+      </aside>
+    }
+  } @else if (section()==='journal') {
+    <main class="journal-page">
+      <section class="journal-intro">
+        <p class="eyebrow">THE STUDIO SUPPLY JOURNAL</p>
+        <h1>Objects for a life<br><em>well considered.</em></h1>
+        <p>Notes on useful things, slower rituals, and making room for what matters.</p>
+      </section>
+
+      <article class="journal-feature">
+        <a class="journal-feature-image" href="#journal-stories" aria-label="Read A slower kind of morning">
+          <img src="https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=1500&q=85" alt="Coffee and a quiet morning table">
+        </a>
+        <div class="journal-feature-copy">
+          <p class="eyebrow">RITUALS / 6 MIN READ</p>
+          <h2>A slower kind<br>of morning.</h2>
+          <p>Before the day fills up, make a little space for the things that bring you back to yourself.</p>
+          <a href="#journal-stories" class="journal-link">Read the story <span>→</span></a>
+          <small>WORDS BY THE STUDIO · 12 SEPTEMBER 2026</small>
+        </div>
+      </article>
+
+      <section class="journal-stories" id="journal-stories">
+        <div class="journal-section-heading">
+          <div>
+            <p class="eyebrow">THE LATEST NOTES</p>
+            <h2>From the journal</h2>
+          </div>
+          <span>ISSUE 04 / AUTUMN 2026</span>
+        </div>
+        <div class="journal-grid">
+          <article class="journal-story">
+            <img src="https://images.unsplash.com/photo-1531346878377-a5be20888e57?auto=format&fit=crop&w=900&q=80" alt="Open notebook ready for a handwritten list" loading="lazy">
+            <p class="eyebrow">AT THE DESK · 4 MIN READ</p>
+            <h3>A place for unfinished thoughts</h3>
+            <p>A paper journal gives ideas somewhere to land before they are ready to become plans.</p>
+          </article>
+          <article class="journal-story">
+            <img src="https://images.unsplash.com/photo-1594223274512-ad4803739b7c?auto=format&fit=crop&w=900&q=80" alt="A simple everyday carryall" loading="lazy">
+            <p class="eyebrow">EVERYDAY CARRY · 5 MIN READ</p>
+            <h3>What earns a place in your bag?</h3>
+            <p>A thoughtful edit of the small essentials that make a day feel easier.</p>
+          </article>
+          <article class="journal-story">
+            <img src="https://images.unsplash.com/photo-1610701596007-11502861dcfa?auto=format&fit=crop&w=900&q=80" alt="Handmade ceramic pieces on a table" loading="lazy">
+            <p class="eyebrow">AT HOME · 3 MIN READ</p>
+            <h3>The beauty of the everyday object</h3>
+            <p>Why the things we reach for each day deserve care in their shape and making.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="journal-outro">
+        <p class="eyebrow">GOOD THINGS, WELL MADE</p>
+        <p>“The little things make the everyday.”</p>
+        <button class="cta" (click)="section.set('shop')">Explore the collection　→</button>
+      </section>
+    </main>
+  } @else {
+    <main class="finova">
+      <aside class="f-sidebar">
+        <a class="f-logo"><span>◆</span> Finova</a>
+        <p>MENU　⌄</p>
+        <button>▦　 Dashboard</button>
+        <button class="side-active">▣　 Orders</button>
+        <button>◇　 Products</button>
+        <button>♧　 Customers</button>
+        <button>▤　 Report</button>
+        <p>TOOLS　⌄</p>
+        <button>▱　 My Store</button>
+        <button>▦　 Integration</button>
+        <button>⊖　 Discount</button>
+        <button>▣　 Invoice</button>
+        <p>SUPPORT　⌄</p>
+        <button>⚙　 Settings</button>
+        <button>ⓘ　 Help</button>
+        <button class="logout" (click)="logout()">⇥　 Logout</button>
+      </aside>
+      <section class="f-main">
+        <header class="f-head">
+          <label>⌕ <input placeholder="Search orders, products, or customers..."></label>
+          <div>◔　☼　◯　♧　 <b>{{currentUser()?.firstName}} {{currentUser()?.lastName}}</b><small>Admin</small>⌄</div>
+        </header>
+        <div class="orders-top">
+          <div>
+            <h1>Orders</h1>
+            <p>Manage and track all customer orders</p>
+          </div>
+          <div>
+            <button class="export">⇩　Export CSV</button>
+            <button class="new-order">＋　 New Order</button>
+          </div>
+        </div>
+        <div class="order-stats">
+          <article><span class="purple">▣</span><p>Total Orders　•••</p><b>{{orders().length}}</b><small class="up">Live from API</small></article>
+          <article><span class="orange">◉</span><p>Pending　•••</p><b>{{pendingCount()}}</b><small class="up">Open orders</small></article>
+          <article><span class="green-dot">◉</span><p>Delivered　•••</p><b>{{deliveredCount()}}</b><small class="up">Completed</small></article>
+          <article><span class="red">↶</span><p>Cancelled　•••</p><b>{{cancelledCount()}}</b><small class="down">Closed early</small></article>
+        </div>
+        <div class="order-filters">
+          <label>⌕ <input placeholder="Search customer order..."></label>
+          <button>▣　 Date　⌄</button>
+          <button>▽　 Status　⌄</button>
+          <button>▤　 Payment Method　⌄</button>
+          <button>↕　 Sort</button>
+        </div>
+        <section class="all-orders">
+          <h2>All Orders</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>ORDER ID</th>
+                <th>CUSTOMER</th>
+                <th>ITEMS</th>
+                <th>AMOUNT</th>
+                <th>PAYMENT</th>
+                <th>DATE</th>
+                <th>STATUS</th>
+                <th>ACTIONS</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (order of orders(); track order.id) {
+                <tr>
+                  <td class="order-id">#{{order.id.slice(0, 8)}}</td>
+                  <td><b>{{order.userId.slice(0, 8)}}</b></td>
+                  <td>{{order.items.length}} Items</td>
+                  <td class="money">{{order.totalAmount | currency:'GHS':'GH₵':'1.0-0'}}</td>
+                  <td>Account</td>
+                  <td>{{order.createdAt | date:'MMM d, y'}}</td>
+                  <td><mark [class]="statusClass(order.status)">{{order.status}}</mark></td>
+                  <td><button>◉</button> <button>✎</button> ⋮</td>
+                </tr>
+              } @empty {
+                <tr><td colspan="8">No orders yet. Place one from the shop.</td></tr>
+              }
+            </tbody>
+          </table>
+          <footer>Showing {{orders().length}} orders</footer>
+        </section>
+      </section>
+    </main>
+  }
+  @if (toast()) {
+    <div class="toast">✓ {{toast()}}</div>
+  }
+</div>
